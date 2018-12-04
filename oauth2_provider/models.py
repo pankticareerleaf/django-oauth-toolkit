@@ -57,11 +57,13 @@ class AbstractApplication(models.Model):
     client_id = models.CharField(
         max_length=100, unique=True, default=generate_client_id, db_index=True
     )
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        related_name="%(app_label)s_%(class)s",
-        null=True, blank=True, on_delete=models.CASCADE
-    )
+    # user = models.ForeignKey(
+    #     settings.AUTH_USER_MODEL,
+    #     related_name="%(app_label)s_%(class)s",
+    #     null=True, blank=True, on_delete=models.CASCADE
+    # )
+
+    user = models.CharField(max_length=24, blank=True)
 
     redirect_uris = models.TextField(
         blank=True, help_text=_("Allowed URIs list, space separated"),
@@ -201,10 +203,11 @@ class AbstractGrant(models.Model):
     * :attr:`scope` Required scopes, optional
     """
     id = models.BigAutoField(primary_key=True)
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-        related_name="%(app_label)s_%(class)s"
-    )
+    # user = models.ForeignKey(
+    #     settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+    #     related_name="%(app_label)s_%(class)s"
+    # )
+    user = models.CharField(max_length=24)
     code = models.CharField(max_length=255, unique=True)  # code comes from oauthlib
     application = models.ForeignKey(
         oauth2_settings.APPLICATION_MODEL, on_delete=models.CASCADE
@@ -255,10 +258,11 @@ class AbstractAccessToken(models.Model):
     * :attr:`scope` Allowed scopes
     """
     id = models.BigAutoField(primary_key=True)
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, blank=True, null=True,
-        related_name="%(app_label)s_%(class)s"
-    )
+    # user = models.ForeignKey(
+    #     settings.AUTH_USER_MODEL, on_delete=models.CASCADE, blank=True, null=True,
+    #     related_name="%(app_label)s_%(class)s"
+    # )
+    user = models.CharField(max_length=24)
     source_refresh_token = models.OneToOneField(
         # unique=True implied by the OneToOneField
         oauth2_settings.REFRESH_TOKEN_MODEL, on_delete=models.SET_NULL, blank=True, null=True,
@@ -348,10 +352,11 @@ class AbstractRefreshToken(models.Model):
     * :attr:`revoked` Timestamp of when this refresh token was revoked
     """
     id = models.BigAutoField(primary_key=True)
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-        related_name="%(app_label)s_%(class)s"
-    )
+    # user = models.ForeignKey(
+    #     settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+    #     related_name="%(app_label)s_%(class)s"
+    # )
+    user = models.CharField(max_length=24)
     token = models.CharField(max_length=255)
     application = models.ForeignKey(
         oauth2_settings.APPLICATION_MODEL, on_delete=models.CASCADE)

@@ -7,7 +7,8 @@ from urllib.parse import unquote_plus
 
 import requests
 from django.conf import settings
-from django.contrib.auth import authenticate, get_user_model
+# from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth import authenticate, get_user_model, get_backends
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.db.models import Q
@@ -44,6 +45,17 @@ Grant = get_grant_model()
 RefreshToken = get_refresh_token_model()
 UserModel = get_user_model()
 
+def find_user_by_id(user_id):
+    user = None
+    backends = get_backends()
+     for auth_backend in backends:
+        try:
+            user = auth_backend.get_user(user_id)
+        except ValueError: 
+            continue
+         if user:
+            break
+    return user 
 
 class OAuth2Validator(RequestValidator):
     def _extract_basic_auth(self, request):
@@ -356,7 +368,8 @@ class OAuth2Validator(RequestValidator):
         introspection_credentials = oauth2_settings.RESOURCE_SERVER_INTROSPECTION_CREDENTIALS
 
         try:
-            access_token = AccessToken.objects.select_related("application", "user").get(token=token)
+            access_token = AccessToken.objects.select_related("application").get(
+                token=token)
         except AccessToken.DoesNotExist:
             access_token = None
 
@@ -372,7 +385,8 @@ class OAuth2Validator(RequestValidator):
 
         if access_token and access_token.is_valid(scopes):
             request.client = access_token.application
-            request.user = access_token.user
+            # request.user = access_token.user
+            request.user = find_user_by_id(access_token.user)
             request.scopes = scopes
 
             # this is needed by django rest framework
@@ -387,7 +401,8 @@ class OAuth2Validator(RequestValidator):
             grant = Grant.objects.get(code=code, application=client)
             if not grant.is_expired():
                 request.scopes = grant.scope.split(" ")
-                request.user = grant.user
+                # request.user = grant.user
+                request.user = find_user_by_id(grant.user)
                 return True
             return False
 
@@ -430,7 +445,8 @@ class OAuth2Validator(RequestValidator):
     def save_authorization_code(self, client_id, code, request, *args, **kwargs):
         expires = timezone.now() + timedelta(
             seconds=oauth2_settings.AUTHORIZATION_CODE_EXPIRE_SECONDS)
-        g = Grant(application=request.client, user=request.user, code=code["code"],
+        # g = Grant(application=request.client, user=request.user, code=code["code"],
+        g = Grant(application=request.client, user=str(request.user.id), code=code['code'],
                   expires=expires, redirect_uri=request.redirect_uri,
                   scope=" ".join(request.scopes))
         g.save()
@@ -478,7 +494,7 @@ class OAuth2Validator(RequestValidator):
                 access_token = AccessToken.objects.select_for_update().get(
                     pk=refresh_token_instance.access_token.pk
                 )
-                access_token.user = request.user
+                access_token.user = str(request.user.id)
                 access_token.scope = token["scope"]
                 access_token.expires = expires
                 access_token.token = token["access_token"]
@@ -521,7 +537,7 @@ class OAuth2Validator(RequestValidator):
                     )
 
                     refresh_token = RefreshToken(
-                        user=request.user,
+                        user=str(request.user.id),
                         token=refresh_token_code,
                         application=request.client,
                         access_token=access_token
@@ -543,7 +559,7 @@ class OAuth2Validator(RequestValidator):
 
     def _create_access_token(self, expires, request, token, source_refresh_token=None):
         access_token = AccessToken(
-            user=request.user,
+            user=str(request.user.id),
             scope=token["scope"],
             expires=expires,
             token=token["access_token"],

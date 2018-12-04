@@ -166,8 +166,9 @@ class AuthorizationView(BaseAuthorizationView, FormView):
                 return self.redirect(uri, application)
 
             elif require_approval == "auto":
+                user_id = str(request.user.id)
                 tokens = get_access_token_model().objects.filter(
-                    user=request.user,
+                    user=user_id,
                     application=kwargs["application"],
                     expires__gt=timezone.now()
                 ).all()
