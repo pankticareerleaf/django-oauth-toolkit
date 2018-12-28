@@ -13,22 +13,22 @@ class ApplicationAdmin(admin.ModelAdmin):
         "client_type": admin.HORIZONTAL,
         "authorization_grant_type": admin.VERTICAL,
     }
-    raw_id_fields = ("user", )
+#    raw_id_fields = ("user", )
 
 
 class GrantAdmin(admin.ModelAdmin):
     list_display = ("code", "application", "user", "expires")
-    raw_id_fields = ("user", )
+ #   raw_id_fields = ("user", )
 
 
 class AccessTokenAdmin(admin.ModelAdmin):
     list_display = ("token", "user", "application", "expires")
-    raw_id_fields = ("user", )
+ #   raw_id_fields = ("user", )
 
 
 class RefreshTokenAdmin(admin.ModelAdmin):
     list_display = ("token", "user", "application")
-    raw_id_fields = ("user", "access_token")
+  #  raw_id_fields = ("user", "access_token")
 
 
 Application = get_application_model()
