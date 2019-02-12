@@ -48,12 +48,12 @@ UserModel = get_user_model()
 def find_user_by_id(user_id):
     user = None
     backends = get_backends()
-     for auth_backend in backends:
+    for auth_backend in backends:
         try:
             user = auth_backend.get_user(user_id)
         except ValueError: 
             continue
-         if user:
+        if user:
             break
     return user 
 
