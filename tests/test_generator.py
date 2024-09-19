@@ -1,8 +1,10 @@
-import pytest
+from django.test import TestCase
 
-from oauth2_provider.generators import BaseHashGenerator, generate_client_id, generate_client_secret
-
-from .common_testing import OAuth2ProviderTestCase as TestCase
+from oauth2_provider.generators import (
+    BaseHashGenerator, ClientIdGenerator, ClientSecretGenerator,
+    generate_client_id, generate_client_secret
+)
+from oauth2_provider.settings import oauth2_settings
 
 
 class MockHashGenerator(BaseHashGenerator):
@@ -10,20 +12,23 @@ class MockHashGenerator(BaseHashGenerator):
         return 42
 
 
-@pytest.mark.usefixtures("oauth2_settings")
 class TestGenerators(TestCase):
+    def tearDown(self):
+        oauth2_settings.CLIENT_ID_GENERATOR_CLASS = ClientIdGenerator
+        oauth2_settings.CLIENT_SECRET_GENERATOR_CLASS = ClientSecretGenerator
+
     def test_generate_client_id(self):
-        g = self.oauth2_settings.CLIENT_ID_GENERATOR_CLASS()
+        g = oauth2_settings.CLIENT_ID_GENERATOR_CLASS()
         self.assertEqual(len(g.hash()), 40)
 
-        self.oauth2_settings.CLIENT_ID_GENERATOR_CLASS = MockHashGenerator
+        oauth2_settings.CLIENT_ID_GENERATOR_CLASS = MockHashGenerator
         self.assertEqual(generate_client_id(), 42)
 
     def test_generate_secret_id(self):
-        g = self.oauth2_settings.CLIENT_SECRET_GENERATOR_CLASS()
+        g = oauth2_settings.CLIENT_SECRET_GENERATOR_CLASS()
         self.assertEqual(len(g.hash()), 128)
 
-        self.oauth2_settings.CLIENT_SECRET_GENERATOR_CLASS = MockHashGenerator
+        oauth2_settings.CLIENT_SECRET_GENERATOR_CLASS = MockHashGenerator
         self.assertEqual(generate_client_secret(), 42)
 
     def test_basegen_misuse(self):

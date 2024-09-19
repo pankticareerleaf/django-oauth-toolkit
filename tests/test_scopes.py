@@ -1,16 +1,19 @@
 import json
 from urllib.parse import parse_qs, urlparse
 
-import pytest
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
-from django.test import RequestFactory
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
-from oauth2_provider.models import get_access_token_model, get_application_model, get_grant_model
-from oauth2_provider.views import ReadWriteScopedResourceView, ScopedProtectedResourceView
+from oauth2_provider.models import (
+    get_access_token_model, get_application_model, get_grant_model
+)
+from oauth2_provider.settings import oauth2_settings
+from oauth2_provider.views import (
+    ReadWriteScopedResourceView, ScopedProtectedResourceView
+)
 
-from .common_testing import OAuth2ProviderTestCase as TestCase
 from .utils import get_basic_auth_header
 
 
@@ -18,8 +21,6 @@ Application = get_application_model()
 AccessToken = get_access_token_model()
 Grant = get_grant_model()
 UserModel = get_user_model()
-
-CLEARTEXT_SECRET = "1234567890abcdefghijklmnopqrstuvwxyz"
 
 
 # mocking a protected resource view
@@ -45,35 +46,30 @@ class ReadWriteResourceView(ReadWriteScopedResourceView):
         return "This is a write protected resource"
 
 
-SCOPE_SETTINGS = {
-    "SCOPES": {
-        "read": "Read scope",
-        "write": "Write scope",
-        "scope1": "Custom scope 1",
-        "scope2": "Custom scope 2",
-        "scope3": "Custom scope 3",
-    },
-}
-
-
-@pytest.mark.usefixtures("oauth2_settings")
-@pytest.mark.oauth2_settings(SCOPE_SETTINGS)
 class BaseTest(TestCase):
-    factory = RequestFactory()
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.test_user = UserModel.objects.create_user("test_user", "test@example.com", "123456")
+        self.dev_user = UserModel.objects.create_user("dev_user", "dev@example.com", "123456")
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.test_user = UserModel.objects.create_user("test_user", "test@example.com", "123456")
-        cls.dev_user = UserModel.objects.create_user("dev_user", "dev@example.com", "123456")
-
-        cls.application = Application.objects.create(
+        self.application = Application(
             name="Test Application",
             redirect_uris="http://localhost http://example.com http://example.org",
-            user=cls.dev_user,
+            user=self.dev_user,
             client_type=Application.CLIENT_CONFIDENTIAL,
             authorization_grant_type=Application.GRANT_AUTHORIZATION_CODE,
-            client_secret=CLEARTEXT_SECRET,
         )
+        self.application.save()
+
+        oauth2_settings._SCOPES = ["read", "write", "scope1", "scope2", "scope3"]
+        oauth2_settings.READ_SCOPE = "read"
+        oauth2_settings.WRITE_SCOPE = "write"
+
+    def tearDown(self):
+        oauth2_settings._SCOPES = ["read", "write"]
+        self.application.delete()
+        self.test_user.delete()
+        self.dev_user.delete()
 
 
 class TestScopesSave(BaseTest):
@@ -81,7 +77,6 @@ class TestScopesSave(BaseTest):
         """
         Test scopes are properly saved in grant
         """
-        self.oauth2_settings.PKCE_REQUIRED = False
         self.client.login(username="test_user", password="123456")
 
         # retrieve a valid authorization code
@@ -104,7 +99,6 @@ class TestScopesSave(BaseTest):
         """
         Test scopes are properly saved in access token
         """
-        self.oauth2_settings.PKCE_REQUIRED = False
         self.client.login(username="test_user", password="123456")
 
         # retrieve a valid authorization code
@@ -124,9 +118,9 @@ class TestScopesSave(BaseTest):
         token_request_data = {
             "grant_type": "authorization_code",
             "code": authorization_code,
-            "redirect_uri": "http://example.org",
+            "redirect_uri": "http://example.org"
         }
-        auth_headers = get_basic_auth_header(self.application.client_id, CLEARTEXT_SECRET)
+        auth_headers = get_basic_auth_header(self.application.client_id, self.application.client_secret)
 
         response = self.client.post(reverse("oauth2_provider:token"), data=token_request_data, **auth_headers)
         content = json.loads(response.content.decode("utf-8"))
@@ -141,7 +135,6 @@ class TestScopesProtection(BaseTest):
         """
         Test access to a scope protected resource with correct scopes provided
         """
-        self.oauth2_settings.PKCE_REQUIRED = False
         self.client.login(username="test_user", password="123456")
 
         # retrieve a valid authorization code
@@ -161,9 +154,9 @@ class TestScopesProtection(BaseTest):
         token_request_data = {
             "grant_type": "authorization_code",
             "code": authorization_code,
-            "redirect_uri": "http://example.org",
+            "redirect_uri": "http://example.org"
         }
-        auth_headers = get_basic_auth_header(self.application.client_id, CLEARTEXT_SECRET)
+        auth_headers = get_basic_auth_header(self.application.client_id, self.application.client_secret)
 
         response = self.client.post(reverse("oauth2_provider:token"), data=token_request_data, **auth_headers)
         content = json.loads(response.content.decode("utf-8"))
@@ -184,7 +177,6 @@ class TestScopesProtection(BaseTest):
         """
         Test access to a scope protected resource with wrong scopes provided
         """
-        self.oauth2_settings.PKCE_REQUIRED = False
         self.client.login(username="test_user", password="123456")
 
         # retrieve a valid authorization code
@@ -204,9 +196,9 @@ class TestScopesProtection(BaseTest):
         token_request_data = {
             "grant_type": "authorization_code",
             "code": authorization_code,
-            "redirect_uri": "http://example.org",
+            "redirect_uri": "http://example.org"
         }
-        auth_headers = get_basic_auth_header(self.application.client_id, CLEARTEXT_SECRET)
+        auth_headers = get_basic_auth_header(self.application.client_id, self.application.client_secret)
 
         response = self.client.post(reverse("oauth2_provider:token"), data=token_request_data, **auth_headers)
         content = json.loads(response.content.decode("utf-8"))
@@ -227,7 +219,6 @@ class TestScopesProtection(BaseTest):
         """
         Test access to a multi-scope protected resource with wrong scopes provided
         """
-        self.oauth2_settings.PKCE_REQUIRED = False
         self.client.login(username="test_user", password="123456")
 
         # retrieve a valid authorization code
@@ -247,9 +238,9 @@ class TestScopesProtection(BaseTest):
         token_request_data = {
             "grant_type": "authorization_code",
             "code": authorization_code,
-            "redirect_uri": "http://example.org",
+            "redirect_uri": "http://example.org"
         }
-        auth_headers = get_basic_auth_header(self.application.client_id, CLEARTEXT_SECRET)
+        auth_headers = get_basic_auth_header(self.application.client_id, self.application.client_secret)
 
         response = self.client.post(reverse("oauth2_provider:token"), data=token_request_data, **auth_headers)
         content = json.loads(response.content.decode("utf-8"))
@@ -270,7 +261,6 @@ class TestScopesProtection(BaseTest):
         """
         Test access to a multi-scope protected resource with correct scopes provided
         """
-        self.oauth2_settings.PKCE_REQUIRED = False
         self.client.login(username="test_user", password="123456")
 
         # retrieve a valid authorization code
@@ -290,9 +280,9 @@ class TestScopesProtection(BaseTest):
         token_request_data = {
             "grant_type": "authorization_code",
             "code": authorization_code,
-            "redirect_uri": "http://example.org",
+            "redirect_uri": "http://example.org"
         }
-        auth_headers = get_basic_auth_header(self.application.client_id, CLEARTEXT_SECRET)
+        auth_headers = get_basic_auth_header(self.application.client_id, self.application.client_secret)
 
         response = self.client.post(reverse("oauth2_provider:token"), data=token_request_data, **auth_headers)
         content = json.loads(response.content.decode("utf-8"))
@@ -312,7 +302,6 @@ class TestScopesProtection(BaseTest):
 
 class TestReadWriteScope(BaseTest):
     def get_access_token(self, scopes):
-        self.oauth2_settings.PKCE_REQUIRED = False
         self.client.login(username="test_user", password="123456")
 
         # retrieve a valid authorization code
@@ -332,36 +321,36 @@ class TestReadWriteScope(BaseTest):
         token_request_data = {
             "grant_type": "authorization_code",
             "code": authorization_code,
-            "redirect_uri": "http://example.org",
+            "redirect_uri": "http://example.org"
         }
-        auth_headers = get_basic_auth_header(self.application.client_id, CLEARTEXT_SECRET)
+        auth_headers = get_basic_auth_header(self.application.client_id, self.application.client_secret)
 
         response = self.client.post(reverse("oauth2_provider:token"), data=token_request_data, **auth_headers)
         content = json.loads(response.content.decode("utf-8"))
         return content["access_token"]
 
     def test_improperly_configured(self):
-        self.oauth2_settings.SCOPES = {"scope1": "Scope 1"}
+        oauth2_settings.SCOPES = {"scope1": "Scope 1"}
 
         request = self.factory.get("/fake")
         view = ReadWriteResourceView.as_view()
         self.assertRaises(ImproperlyConfigured, view, request)
 
-        self.oauth2_settings.SCOPES = {"read": "Read Scope", "write": "Write Scope"}
-        self.oauth2_settings.READ_SCOPE = "ciccia"
+        oauth2_settings.SCOPES = {"read": "Read Scope", "write": "Write Scope"}
+        oauth2_settings.READ_SCOPE = "ciccia"
 
         view = ReadWriteResourceView.as_view()
         self.assertRaises(ImproperlyConfigured, view, request)
 
     def test_properly_configured(self):
-        self.oauth2_settings.SCOPES = {"scope1": "Scope 1"}
+        oauth2_settings.SCOPES = {"scope1": "Scope 1"}
 
         request = self.factory.get("/fake")
         view = ReadWriteResourceView.as_view()
         self.assertRaises(ImproperlyConfigured, view, request)
 
-        self.oauth2_settings.SCOPES = {"read": "Read Scope", "write": "Write Scope"}
-        self.oauth2_settings.READ_SCOPE = "ciccia"
+        oauth2_settings.SCOPES = {"read": "Read Scope", "write": "Write Scope"}
+        oauth2_settings.READ_SCOPE = "ciccia"
 
         view = ReadWriteResourceView.as_view()
         self.assertRaises(ImproperlyConfigured, view, request)

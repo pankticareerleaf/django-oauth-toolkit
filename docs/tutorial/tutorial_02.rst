@@ -14,7 +14,7 @@ to provide an API to access some kind of resources. We don't need an actual reso
 endpoint protected with OAuth2: let's do it in a *class based view* fashion!
 
 Django OAuth Toolkit provides a set of generic class based view you can use to add OAuth behaviour to your views. Open
-your :file:`views.py` module and import the view:
+your `views.py` module and import the view:
 
 .. code-block:: python
 
@@ -29,59 +29,57 @@ Then create the view which will respond to the API endpoint:
         def get(self, request, *args, **kwargs):
             return HttpResponse('Hello, OAuth2!')
 
-That's it, our API will expose only one method, responding to ``GET`` requests. Now open your :file:`urls.py` and specify the
+That's it, our API will expose only one method, responding to `GET` requests. Now open your `urls.py` and specify the
 URL this view will respond to:
 
 .. code-block:: python
 
-    from django.urls import path, include
+    from django.conf.urls import url, include
     import oauth2_provider.views as oauth2_views
     from django.conf import settings
     from .views import ApiEndpoint
 
     # OAuth2 provider endpoints
     oauth2_endpoint_views = [
-        path('authorize/', oauth2_views.AuthorizationView.as_view(), name="authorize"),
-        path('token/', oauth2_views.TokenView.as_view(), name="token"),
-        path('revoke-token/', oauth2_views.RevokeTokenView.as_view(), name="revoke-token"),
+        url(r'^authorize/$', oauth2_views.AuthorizationView.as_view(), name="authorize"),
+        url(r'^token/$', oauth2_views.TokenView.as_view(), name="token"),
+        url(r'^revoke-token/$', oauth2_views.RevokeTokenView.as_view(), name="revoke-token"),
     ]
 
     if settings.DEBUG:
         # OAuth2 Application Management endpoints
         oauth2_endpoint_views += [
-            path('applications/', oauth2_views.ApplicationList.as_view(), name="list"),
-            path('applications/register/', oauth2_views.ApplicationRegistration.as_view(), name="register"),
-            path('applications/<pk>/', oauth2_views.ApplicationDetail.as_view(), name="detail"),
-            path('applications/<pk>/delete/', oauth2_views.ApplicationDelete.as_view(), name="delete"),
-            path('applications/<pk>/update/', oauth2_views.ApplicationUpdate.as_view(), name="update"),
+            url(r'^applications/$', oauth2_views.ApplicationList.as_view(), name="list"),
+            url(r'^applications/register/$', oauth2_views.ApplicationRegistration.as_view(), name="register"),
+            url(r'^applications/(?P<pk>\d+)/$', oauth2_views.ApplicationDetail.as_view(), name="detail"),
+            url(r'^applications/(?P<pk>\d+)/delete/$', oauth2_views.ApplicationDelete.as_view(), name="delete"),
+            url(r'^applications/(?P<pk>\d+)/update/$', oauth2_views.ApplicationUpdate.as_view(), name="update"),
         ]
 
         # OAuth2 Token Management endpoints
         oauth2_endpoint_views += [
-            path('authorized-tokens/', oauth2_views.AuthorizedTokensListView.as_view(), name="authorized-token-list"),
-            path('authorized-tokens/<pk>/delete/', oauth2_views.AuthorizedTokenDeleteView.as_view(),
+            url(r'^authorized-tokens/$', oauth2_views.AuthorizedTokensListView.as_view(), name="authorized-token-list"),
+            url(r'^authorized-tokens/(?P<pk>\d+)/delete/$', oauth2_views.AuthorizedTokenDeleteView.as_view(),
                 name="authorized-token-delete"),
         ]
 
     urlpatterns = [
         # OAuth 2 endpoints:
-        # need to pass in a tuple of the endpoints as well as the app's name
-        # because the app_name attribute is not set in the included module
-        path('o/', include((oauth2_endpoint_views, 'oauth2_provider'), namespace="oauth2_provider")),
-        path('api/hello', ApiEndpoint.as_view()),  # an example resource endpoint
+        url(r'^o/', include(oauth2_endpoint_views, namespace="oauth2_provider")),
+        url(r'^api/hello', ApiEndpoint.as_view()),  # an example resource endpoint
     ]
 
 You will probably want to write your own application views to deal with permissions and access control but the ones packaged with the library can get you started when developing the app.
 
-Since we inherit from ``ProtectedResourceView``, we're done and our API is OAuth2 protected - for the sake of the lazy
+Since we inherit from `ProtectedResourceView`, we're done and our API is OAuth2 protected - for the sake of the lazy
 programmer.
 
 Testing your API
 ----------------
 Time to make requests to your API.
 
-For a quick test, try accessing your app at the url ``/api/hello`` with your browser
-and verify that it responds with a ``403`` (in fact no ``HTTP_AUTHORIZATION`` header was provided).
+For a quick test, try accessing your app at the url `/api/hello` with your browser
+and verify that it responds with a `403` (in fact no `HTTP_AUTHORIZATION` header was provided).
 You can test your API with anything that can perform HTTP requests, but for this tutorial you can use the online
 `consumer client <http://django-oauth-toolkit.herokuapp.com/consumer/client>`_.
 Just fill the form with the URL of the API endpoint (i.e. http://localhost:8000/api/hello if you're on localhost) and

@@ -1,11 +1,11 @@
 Installation
 ============
 
-Install with pip::
-
+Install with pip
+::
     pip install django-oauth-toolkit
 
-Add ``oauth2_provider`` to your ``INSTALLED_APPS``
+Add `oauth2_provider` to your `INSTALLED_APPS`
 
 .. code-block:: python
 
@@ -15,16 +15,13 @@ Add ``oauth2_provider`` to your ``INSTALLED_APPS``
     )
 
 
-If you need an OAuth2 provider you'll want to add the following to your :file:`urls.py`
+If you need an OAuth2 provider you'll want to add the following to your urls.py
 
 .. code-block:: python
 
-    from django.urls import include, path
-    from oauth2_provider import urls as oauth2_urls
-
     urlpatterns = [
         ...
-        path('o/', include(oauth2_urls)),
+        url(r'^o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
     ]
 
 Sync your database
@@ -32,6 +29,6 @@ Sync your database
 
 .. sourcecode:: sh
 
-    python manage.py migrate oauth2_provider
+    $ python manage.py migrate oauth2_provider
 
-Next step is :doc:`getting started <getting_started>` or :doc:`first tutorial <tutorial/tutorial_01>`.
+Next step is our :doc:`first tutorial <tutorial/tutorial_01>`.

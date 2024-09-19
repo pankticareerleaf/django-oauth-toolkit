@@ -1,40 +1,36 @@
 import calendar
-import hashlib
+import json
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.http import JsonResponse
+from django.http import HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
-from ..compat import login_not_required
-from ..models import get_access_token_model
-from ..views.generic import ClientProtectedScopedResourceView
+from oauth2_provider.models import get_access_token_model
+from oauth2_provider.views import ScopedProtectedResourceView
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-@method_decorator(login_not_required, name="dispatch")
-class IntrospectTokenView(ClientProtectedScopedResourceView):
+class IntrospectTokenView(ScopedProtectedResourceView):
     """
     Implements an endpoint for token introspection based
-    on RFC 7662 https://rfc-editor.org/rfc/rfc7662.html
+    on RFC 7662 https://tools.ietf.org/html/rfc7662
 
     To access this view the request must pass a OAuth2 Bearer Token
     which is allowed to access the scope `introspection`.
     """
-
     required_scopes = ["introspection"]
 
     @staticmethod
     def get_token_response(token_value=None):
         try:
-            token_checksum = hashlib.sha256(token_value.encode("utf-8")).hexdigest()
-            token = (
-                get_access_token_model()
-                .objects.select_related("user", "application")
-                .get(token_checksum=token_checksum)
-            )
+            token = get_access_token_model().objects.get(token=token_value)
         except ObjectDoesNotExist:
-            return JsonResponse({"active": False}, status=200)
+            return HttpResponse(
+                content=json.dumps({"active": False}),
+                status=401,
+                content_type="application/json"
+            )
         else:
             if token.is_valid():
                 data = {
@@ -46,9 +42,11 @@ class IntrospectTokenView(ClientProtectedScopedResourceView):
                     data["client_id"] = token.application.client_id
                 if token.user:
                     data["username"] = token.user.get_username()
-                return JsonResponse(data)
+                return HttpResponse(content=json.dumps(data), status=200, content_type="application/json")
             else:
-                return JsonResponse({"active": False}, status=200)
+                return HttpResponse(content=json.dumps({
+                    "active": False,
+                }), status=200, content_type="application/json")
 
     def get(self, request, *args, **kwargs):
         """

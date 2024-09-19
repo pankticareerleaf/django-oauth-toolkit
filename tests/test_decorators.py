@@ -1,13 +1,12 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.test import RequestFactory
+from django.test import RequestFactory, TestCase
 from django.utils import timezone
 
 from oauth2_provider.decorators import protected_resource, rw_protected_resource
 from oauth2_provider.models import get_access_token_model, get_application_model
-
-from .common_testing import OAuth2ProviderTestCase as TestCase
+from oauth2_provider.settings import oauth2_settings
 
 
 Application = get_application_model()
@@ -16,25 +15,29 @@ UserModel = get_user_model()
 
 
 class TestProtectedResourceDecorator(TestCase):
-    request_factory = RequestFactory()
-
     @classmethod
-    def setUpTestData(cls):
-        cls.user = UserModel.objects.create_user("test_user", "test@example.com", "123456")
-        cls.application = Application.objects.create(
+    def setUpClass(cls):
+        cls.request_factory = RequestFactory()
+        super(TestProtectedResourceDecorator, cls).setUpClass()
+
+    def setUp(self):
+        self.user = UserModel.objects.create_user("test_user", "test@example.com", "123456")
+        self.application = Application.objects.create(
             name="test_client_credentials_app",
-            user=cls.user,
+            user=self.user,
             client_type=Application.CLIENT_PUBLIC,
             authorization_grant_type=Application.GRANT_CLIENT_CREDENTIALS,
         )
 
-        cls.access_token = AccessToken.objects.create(
-            user=cls.user,
+        self.access_token = AccessToken.objects.create(
+            user=self.user,
             scope="read write",
             expires=timezone.now() + timedelta(seconds=300),
             token="secret-access-token-key",
-            application=cls.application,
+            application=self.application
         )
+
+        oauth2_settings._SCOPES = ["read", "write"]
 
     def test_access_denied(self):
         @protected_resource()

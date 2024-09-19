@@ -1,16 +1,9 @@
-import hashlib
-import logging
-
 from django.contrib.auth import authenticate
 from django.utils.cache import patch_vary_headers
-
-from oauth2_provider.models import get_access_token_model
-
-
-log = logging.getLogger(__name__)
+from django.utils.deprecation import MiddlewareMixin
 
 
-class OAuth2TokenMiddleware:
+class OAuth2TokenMiddleware(MiddlewareMixin):
     """
     Middleware for OAuth2 user authentication
 
@@ -30,10 +23,7 @@ class OAuth2TokenMiddleware:
     reverse proxy can create proper cache keys.
     """
 
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-    def __call__(self, request):
+    def process_request(self, request):
         # do something only if request contains a Bearer token
         if request.META.get("HTTP_AUTHORIZATION", "").startswith("Bearer"):
             if not hasattr(request, "user") or request.user.is_anonymous:
@@ -41,25 +31,6 @@ class OAuth2TokenMiddleware:
                 if user:
                     request.user = request._cached_user = user
 
-        response = self.get_response(request)
+    def process_response(self, request, response):
         patch_vary_headers(response, ("Authorization",))
-        return response
-
-
-class OAuth2ExtraTokenMiddleware:
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-    def __call__(self, request):
-        authheader = request.META.get("HTTP_AUTHORIZATION", "")
-        if authheader.startswith("Bearer"):
-            tokenstring = authheader.split()[1]
-            AccessToken = get_access_token_model()
-            try:
-                token_checksum = hashlib.sha256(tokenstring.encode("utf-8")).hexdigest()
-                token = AccessToken.objects.get(token_checksum=token_checksum)
-                request.access_token = token
-            except AccessToken.DoesNotExist as e:
-                log.exception(e)
-        response = self.get_response(request)
         return response

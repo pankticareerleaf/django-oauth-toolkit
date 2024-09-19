@@ -7,24 +7,17 @@ Django OAuth Toolkit
 
 *OAuth2 goodies for the Djangonauts!*
 
-.. image:: https://badge.fury.io/py/django-oauth-toolkit.svg
+.. image:: https://badge.fury.io/py/django-oauth-toolkit.png
     :target: http://badge.fury.io/py/django-oauth-toolkit
 
-.. image:: https://github.com/jazzband/django-oauth-toolkit/workflows/Test/badge.svg
-   :target: https://github.com/jazzband/django-oauth-toolkit/actions
-   :alt: GitHub Actions
+.. image:: https://travis-ci.org/jazzband/django-oauth-toolkit.png
+   :alt: Build Status
+   :target: https://travis-ci.org/jazzband/django-oauth-toolkit
 
-.. image:: https://codecov.io/gh/jazzband/django-oauth-toolkit/branch/master/graph/badge.svg
-   :target: https://codecov.io/gh/jazzband/django-oauth-toolkit
-   :alt: Coverage
+.. image:: https://coveralls.io/repos/github/jazzband/django-oauth-toolkit/badge.svg?branch=master
+   :alt: Coverage Status
+   :target: https://coveralls.io/github/jazzband/django-oauth-toolkit?branch=master
 
-.. image:: https://img.shields.io/pypi/pyversions/django-oauth-toolkit.svg
-   :target: https://pypi.org/project/django-oauth-toolkit/
-   :alt: Supported Python versions
-
-.. image:: https://img.shields.io/pypi/djversions/django-oauth-toolkit.svg
-   :target: https://pypi.org/project/django-oauth-toolkit/
-   :alt: Supported Django versions
 
 If you are facing one or more of the following:
  * Your Django app exposes a web API you want to protect with OAuth2 authentication,
@@ -33,7 +26,13 @@ If you are facing one or more of the following:
 Django OAuth Toolkit can help you providing out of the box all the endpoints, data and logic needed to add OAuth2
 capabilities to your Django projects. Django OAuth Toolkit makes extensive use of the excellent
 `OAuthLib <https://github.com/idan/oauthlib>`_, so that everything is
-`rfc-compliant <https://rfc-editor.org/rfc/rfc6749.html>`_.
+`rfc-compliant <http://tools.ietf.org/html/rfc6749>`_.
+
+Contributing
+------------
+
+We love contributions, so please feel free to fix bugs, improve things, provide documentation. Just `follow the
+guidelines <https://django-oauth-toolkit.readthedocs.io/en/latest/contributing.html>`_ and submit a PR.
 
 Reporting security issues
 -------------------------
@@ -43,9 +42,8 @@ Please report any security issues to the JazzBand security team at <security@jaz
 Requirements
 ------------
 
-* Python 3.8+
-* Django 4.2, 5.0 or 5.1
-* oauthlib 3.2.2+
+* Python 3.4+
+* Django 2.0+
 
 Installation
 ------------
@@ -54,7 +52,7 @@ Install with pip::
 
     pip install django-oauth-toolkit
 
-Add ``oauth2_provider`` to your ``INSTALLED_APPS``
+Add `oauth2_provider` to your `INSTALLED_APPS`
 
 .. code-block:: python
 
@@ -64,15 +62,14 @@ Add ``oauth2_provider`` to your ``INSTALLED_APPS``
     )
 
 
-If you need an OAuth2 provider you'll want to add the following to your ``urls.py``.
+If you need an OAuth2 provider you'll want to add the following to your urls.py.
+Notice that `oauth2_provider` namespace is mandatory.
 
 .. code-block:: python
 
-    from oauth2_provider import urls as oauth2_urls
-
     urlpatterns = [
         ...
-        path('o/', include(oauth2_urls)),
+        url(r'^o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
     ]
 
 Changelog
@@ -90,55 +87,3 @@ License
 -------
 
 django-oauth-toolkit is released under the terms of the **BSD license**. Full details in ``LICENSE`` file.
-
-Help Wanted
------------
-
-We need help maintaining and enhancing django-oauth-toolkit (DOT).
-
-Join the team
-~~~~~~~~~~~~~
-
-Please consider joining `Jazzband <https://jazzband.co>`__ (If not
-already a member) and the `DOT project
-team <https://jazzband.co/projects/django-oauth-toolkit>`__.
-
-How you can help
-~~~~~~~~~~~~~~~~
-
-See our
-`contributing <https://django-oauth-toolkit.readthedocs.io/en/latest/contributing.html>`__
-info and the open
-`issues <https://github.com/jazzband/django-oauth-toolkit/issues>`__ and
-`PRs <https://github.com/jazzband/django-oauth-toolkit/pulls>`__,
-especially those labeled
-`help-wanted <https://github.com/jazzband/django-oauth-toolkit/labels/help-wanted>`__.
-
-Discussions
-~~~~~~~~~~~
-Have questions or want to discuss the project?
-See `the discussions <https://github.com/jazzband/django-oauth-toolkit/discussions>`__.
-
-
-Submit PRs and Perform Reviews
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-PR submissions and reviews are always appreciated! Since we require an
-independent review of any PR before it can be merged, having your second
-set of eyes looking at PRs is extremely valuable.
-
-Please don’t merge PRs
-~~~~~~~~~~~~~~~~~~~~~~
-
-Please be aware that we don’t want *every* Jazzband member to merge PRs
-but just a handful of project team members so that we can maintain a
-modicum of control over what goes into a release of this security oriented code base. Only `project
-leads <https://jazzband.co/projects/django-oauth-toolkit>`__ are able to
-publish releases to Pypi and it becomes difficult when creating a new
-release for the leads to deal with “unexpected” merged PRs.
-
-Become a Project Lead
-~~~~~~~~~~~~~~~~~~~~~
-
-If you are interested in stepping up to be a Project Lead, please take a look at
-the `discussion about this <https://github.com/jazzband/django-oauth-toolkit/discussions/1479>`__.

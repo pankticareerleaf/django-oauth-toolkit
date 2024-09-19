@@ -11,7 +11,6 @@ class OAuth2ResponseRedirect(HttpResponse):
     Works like django.http.HttpResponseRedirect but we customize it
     to give us more flexibility on allowed scheme validation.
     """
-
     status_code = 302
 
     def __init__(self, redirect_to, allowed_schemes, *args, **kwargs):
@@ -29,4 +28,6 @@ class OAuth2ResponseRedirect(HttpResponse):
         if not parsed.scheme:
             raise DisallowedRedirect("OAuth2 redirects require a URI scheme.")
         if parsed.scheme not in self.allowed_schemes:
-            raise DisallowedRedirect("Redirect to scheme {!r} is not permitted".format(parsed.scheme))
+            raise DisallowedRedirect(
+                "Redirect to scheme {!r} is not permitted".format(parsed.scheme)
+            )

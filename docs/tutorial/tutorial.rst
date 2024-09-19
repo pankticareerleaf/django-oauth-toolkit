@@ -8,5 +8,3 @@ Tutorials
    tutorial_02
    tutorial_03
    tutorial_04
-   tutorial_05
-
