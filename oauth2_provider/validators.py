@@ -3,7 +3,7 @@ from urllib.parse import urlsplit
 
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 
 class URIValidator(URLValidator):
